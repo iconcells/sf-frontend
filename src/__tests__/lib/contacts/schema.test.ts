@@ -18,6 +18,7 @@ function values(overrides: Record<string, string> = {}) {
     state: "",
     postal_code: "",
     country: "",
+    photo: "",
     notes: "",
     ...overrides,
   };
@@ -36,6 +37,63 @@ describe("contactInputSchema", () => {
     expect(contactInputSchema.parse(values({ company: "  Acme  " })).company).toBe(
       "Acme",
     );
+  });
+
+  it("accepts a valid base64 photo payload and nulls blank values", () => {
+    const validPng =
+      "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAAC0lEQVR4nGNgAAIAAAUAAXpeqz8AAAAASUVORK5CYII=";
+    const parsed = contactInputSchema.parse(
+      values({
+        photo: validPng,
+        notes: "   ",
+      }),
+    );
+
+    expect(parsed.photo).toBe(validPng);
+    expect(contactInputSchema.parse(values({ photo: "   " })).photo).toBeNull();
+  });
+
+  it("rejects malformed base64 and unsupported image payloads", () => {
+    const malformed = contactInputSchema.safeParse(
+      values({ photo: "data:image/png;base64,AAAA" }),
+    );
+    const remote = contactInputSchema.safeParse(
+      values({ photo: "https://example.com/avatar.png" }),
+    );
+    const svg = contactInputSchema.safeParse(
+      values({ photo: "data:image/svg+xml;base64,PHN2Zy8+" }),
+    );
+
+    expect(malformed.success).toBe(false);
+    expect(zodFieldErrors(malformed.error!)).toEqual({
+      photo: "Photo must be a PNG, JPEG, or WebP data URI.",
+    });
+    expect(remote.success).toBe(false);
+    expect(zodFieldErrors(remote.error!)).toEqual({
+      photo: "Photo must be a PNG, JPEG, or WebP data URI.",
+    });
+    expect(svg.success).toBe(false);
+    expect(zodFieldErrors(svg.error!)).toEqual({
+      photo: "Photo must be a PNG, JPEG, or WebP data URI.",
+    });
+  });
+
+  it("rejects remote URLs and unsupported image types", () => {
+    const remote = contactInputSchema.safeParse(
+      values({ photo: "https://example.com/avatar.png" }),
+    );
+    const svg = contactInputSchema.safeParse(
+      values({ photo: "data:image/svg+xml;base64,PHN2Zy8+" }),
+    );
+
+    expect(remote.success).toBe(false);
+    expect(zodFieldErrors(remote.error!)).toEqual({
+      photo: "Photo must be a PNG, JPEG, or WebP data URI.",
+    });
+    expect(svg.success).toBe(false);
+    expect(zodFieldErrors(svg.error!)).toEqual({
+      photo: "Photo must be a PNG, JPEG, or WebP data URI.",
+    });
   });
 
   it("requires the three fields the API requires", () => {

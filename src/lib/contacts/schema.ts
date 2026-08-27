@@ -28,6 +28,62 @@ function requiredText(max: number, label: string) {
     .max(max, `${label} must be ${max} characters or fewer`);
 }
 
+const PHOTO_DATA_URI_PATTERN = /^data:image\/(png|jpeg|webp);base64,/i;
+
+function isSupportedPhotoDataUri(value: string): boolean {
+  if (value === "") return true;
+
+  const match = value.match(/^data:image\/(png|jpeg|webp);base64,([A-Za-z0-9+/]+={0,2})$/i);
+  if (!match) return false;
+
+  const [, format, payload] = match;
+  if (payload.length % 4 !== 0) return false;
+  if (payload.includes("=") && payload.slice(payload.indexOf("=")).length > 2) {
+    return false;
+  }
+
+  try {
+    const decoded = atob(payload);
+    const bytes = Uint8Array.from(decoded, (char) => char.charCodeAt(0));
+
+    if (format.toLowerCase() === "png") {
+      return (
+        bytes.length >= 8 &&
+        bytes[0] === 0x89 &&
+        bytes[1] === 0x50 &&
+        bytes[2] === 0x4e &&
+        bytes[3] === 0x47 &&
+        bytes[4] === 0x0d &&
+        bytes[5] === 0x0a &&
+        bytes[6] === 0x1a &&
+        bytes[7] === 0x0a
+      );
+    }
+
+    if (format.toLowerCase() === "jpeg") {
+      return bytes.length >= 3 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff;
+    }
+
+    if (format.toLowerCase() === "webp") {
+      return (
+        bytes.length >= 12 &&
+        bytes[0] === 0x52 &&
+        bytes[1] === 0x49 &&
+        bytes[2] === 0x46 &&
+        bytes[3] === 0x46 &&
+        bytes[8] === 0x57 &&
+        bytes[9] === 0x45 &&
+        bytes[10] === 0x42 &&
+        bytes[11] === 0x50
+      );
+    }
+  } catch {
+    return false;
+  }
+
+  return false;
+}
+
 export const contactInputSchema = z.object({
   first_name: requiredText(100, "First name"),
   last_name: requiredText(100, "Last name"),
@@ -46,6 +102,16 @@ export const contactInputSchema = z.object({
   state: optionalText(120, "State"),
   postal_code: optionalText(20, "Postal code"),
   country: optionalText(120, "Country"),
+  photo: z
+    .string()
+    .trim()
+    .max(1_000_000, "Photo must be 1,000,000 characters or fewer")
+    .refine(isSupportedPhotoDataUri, {
+      message: "Photo must be a PNG, JPEG, or WebP data URI.",
+    })
+    .transform((value) => value || null)
+    .nullable()
+    .default(null),
   notes: z
     .string()
     .trim()
@@ -129,6 +195,12 @@ export const CONTACT_FIELD_GROUPS: ContactFieldGroup[] = [
         maxLength: 40,
         placeholder: "+1-415-555-0101",
         autoComplete: "tel",
+      },
+      {
+        name: "photo",
+        label: "Photo",
+        maxLength: 1_000_000,
+        placeholder: "data:image/png;base64,...",
       },
     ],
   },

@@ -9,8 +9,11 @@ import {
   getContact,
   getHealth,
   listContacts,
+  replaceContact,
   toFieldErrors,
+  updateContact,
 } from "@/lib/contacts/api";
+import { makeContact } from "../../mocks/handlers";
 import type { ContactInput } from "@/lib/contacts/types";
 
 beforeAll(() => server.listen({ onUnhandledRequest: "error" }));
@@ -29,6 +32,7 @@ const INPUT: ContactInput = {
   state: null,
   postal_code: null,
   country: null,
+  photo: null,
   notes: null,
 };
 
@@ -71,6 +75,17 @@ describe("getContact", () => {
     await expect(getContact(1)).resolves.toMatchObject({ id: 1 });
   });
 
+  it("returns the photo in the single-contact response", async () => {
+    const photo = "data:image/png;base64,DDDD";
+    server.use(
+      http.get(api("/api/v1/contacts/:id"), ({ params }) =>
+        HttpResponse.json(makeContact({ id: Number(params.id), photo })),
+      ),
+    );
+
+    await expect(getContact(5)).resolves.toMatchObject({ photo });
+  });
+
   it("returns null on 404 rather than throwing", async () => {
     await expect(getContact(4242)).resolves.toBeNull();
   });
@@ -91,6 +106,23 @@ describe("createContact", () => {
     await expect(createContact(INPUT)).resolves.toMatchObject({ id: 99 });
   });
 
+  it("accepts an optional photo when creating a contact", async () => {
+    const photo = "data:image/png;base64,AAAA";
+    let seen: unknown;
+
+    server.use(
+      http.post(api("/api/v1/contacts"), async ({ request }) => {
+        seen = await request.json();
+        return HttpResponse.json(makeContact({ ...INPUT, photo, id: 99 }));
+      }),
+    );
+
+    await expect(createContact({ ...INPUT, photo })).resolves.toMatchObject({
+      photo,
+    });
+    expect(seen).toMatchObject({ photo });
+  });
+
   it("surfaces a 409 as an ApiError", async () => {
     server.use(
       http.post(api("/api/v1/contacts"), () =>
@@ -102,6 +134,63 @@ describe("createContact", () => {
     );
 
     await expect(createContact(INPUT)).rejects.toMatchObject({ status: 409 });
+  });
+});
+
+describe("replaceContact", () => {
+  it("sends the full payload including photo on PUT", async () => {
+    const photo = "data:image/jpeg;base64,BBBB";
+    let seen: unknown;
+
+    server.use(
+      http.put(api("/api/v1/contacts/:id"), async ({ request, params }) => {
+        seen = await request.json();
+        return HttpResponse.json(
+          makeContact({ ...INPUT, photo, id: Number(params.id) }),
+        );
+      }),
+    );
+
+    await expect(replaceContact(7, { ...INPUT, photo })).resolves.toMatchObject({
+      photo,
+      id: 7,
+    });
+    expect(seen).toMatchObject({ photo });
+  });
+});
+
+describe("updateContact", () => {
+  it("updates only the photo field when a PATCH is sent", async () => {
+    const photo = "data:image/webp;base64,CCCC";
+    let seen: unknown;
+
+    server.use(
+      http.patch(api("/api/v1/contacts/:id"), async ({ request, params }) => {
+        seen = await request.json();
+        return HttpResponse.json(
+          makeContact({ ...INPUT, photo, id: Number(params.id) }),
+        );
+      }),
+    );
+
+    await expect(updateContact(4, { photo })).resolves.toMatchObject({ photo });
+    expect(seen).toMatchObject({ photo });
+  });
+
+  it("accepts null to remove the photo with PATCH", async () => {
+    let seen: unknown;
+
+    server.use(
+      http.patch(api("/api/v1/contacts/:id"), async ({ request }) => {
+        seen = await request.json();
+        return HttpResponse.json(makeContact({ ...INPUT, photo: null }));
+      }),
+    );
+
+    await expect(updateContact(4, { photo: null })).resolves.toMatchObject({
+      photo: null,
+    });
+    expect(seen).toMatchObject({ photo: null });
   });
 });
 
