@@ -8,6 +8,8 @@ const SIZES = {
   lg: "h-14 w-14 text-lg",
 } as const;
 
+const PHOTO_DATA_URI_PATTERN = /^data:image\/(png|jpeg|webp);base64,/i;
+
 /** Initials bubble, tinted with a hue derived from the contact's email. */
 export default function ContactAvatar({
   contact,
@@ -20,7 +22,7 @@ export default function ContactAvatar({
     "--avatar-hue": avatarHue(contact.email),
   } as CSSProperties;
 
-  if (contact.photo) {
+  if (contact.photo && PHOTO_DATA_URI_PATTERN.test(contact.photo)) {
     return (
       <img
         src={contact.photo}

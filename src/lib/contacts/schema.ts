@@ -28,6 +28,13 @@ function requiredText(max: number, label: string) {
     .max(max, `${label} must be ${max} characters or fewer`);
 }
 
+const PHOTO_DATA_URI_PATTERN =
+  /^data:image\/(png|jpeg|webp);base64,([A-Za-z0-9+/]+={0,2})$/i;
+
+function isSupportedPhotoDataUri(value: string): boolean {
+  return value === "" || PHOTO_DATA_URI_PATTERN.test(value);
+}
+
 export const contactInputSchema = z.object({
   first_name: requiredText(100, "First name"),
   last_name: requiredText(100, "Last name"),
@@ -49,6 +56,10 @@ export const contactInputSchema = z.object({
   photo: z
     .string()
     .trim()
+    .max(1_000_000, "Photo must be 1,000,000 characters or fewer")
+    .refine(isSupportedPhotoDataUri, {
+      message: "Photo must be a PNG, JPEG, or WebP data URI.",
+    })
     .transform((value) => value || null)
     .nullable()
     .default(null),

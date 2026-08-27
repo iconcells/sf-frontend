@@ -51,6 +51,24 @@ describe("contactInputSchema", () => {
     expect(contactInputSchema.parse(values({ photo: "   " })).photo).toBeNull();
   });
 
+  it("rejects remote URLs and unsupported image types", () => {
+    const remote = contactInputSchema.safeParse(
+      values({ photo: "https://example.com/avatar.png" }),
+    );
+    const svg = contactInputSchema.safeParse(
+      values({ photo: "data:image/svg+xml;base64,PHN2Zy8+" }),
+    );
+
+    expect(remote.success).toBe(false);
+    expect(zodFieldErrors(remote.error!)).toEqual({
+      photo: "Photo must be a PNG, JPEG, or WebP data URI.",
+    });
+    expect(svg.success).toBe(false);
+    expect(zodFieldErrors(svg.error!)).toEqual({
+      photo: "Photo must be a PNG, JPEG, or WebP data URI.",
+    });
+  });
+
   it("requires the three fields the API requires", () => {
     const result = contactInputSchema.safeParse(
       values({ first_name: " ", last_name: "", email: "" }),
