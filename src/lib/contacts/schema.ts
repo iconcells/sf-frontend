@@ -28,8 +28,6 @@ function requiredText(max: number, label: string) {
     .max(max, `${label} must be ${max} characters or fewer`);
 }
 
-const PHOTO_DATA_URI_PATTERN = /^data:image\/(png|jpeg|webp);base64,/i;
-
 function isSupportedPhotoDataUri(value: string): boolean {
   if (value === "") return true;
 
