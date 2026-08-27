@@ -143,11 +143,12 @@ export function zodFieldErrors(
 export interface ContactFieldSpec {
   name: keyof ContactInput;
   label: string;
-  type?: "text" | "email" | "tel" | "textarea";
+  type?: "text" | "email" | "tel" | "textarea" | "file";
   required?: boolean;
   maxLength: number;
   placeholder?: string;
   autoComplete?: string;
+  accept?: string;
   /** Column span inside the section grid. */
   wide?: boolean;
 }
@@ -199,8 +200,10 @@ export const CONTACT_FIELD_GROUPS: ContactFieldGroup[] = [
       {
         name: "photo",
         label: "Photo",
+        type: "file",
         maxLength: 1_000_000,
         placeholder: "data:image/png;base64,...",
+        accept: "image/png,image/jpeg,image/webp",
       },
     ],
   },

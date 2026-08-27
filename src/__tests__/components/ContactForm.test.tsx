@@ -54,6 +54,21 @@ describe("ContactForm", () => {
     expect(formData.get("email")).toBe("grace@example.com");
   });
 
+  it("converts a dropped image file into a data URI for the photo field", async () => {
+    renderForm(jest.fn());
+
+    const file = new File([Uint8Array.from([0x89, 0x50, 0x4e, 0x47])], "avatar.png", {
+      type: "image/png",
+    });
+
+    const fileInput = screen.getByLabelText(/photo/i);
+    await userEvent.upload(fileInput, file);
+
+    await waitFor(() => {
+      expect(screen.getByDisplayValue(/^data:image\/png;base64,/i)).toBeInTheDocument();
+    });
+  });
+
   it("shows the summary and the per-field errors the action returns", async () => {
     const action = jest.fn(
       async (): Promise<FormState> => ({
