@@ -46,6 +46,12 @@ export const contactInputSchema = z.object({
   state: optionalText(120, "State"),
   postal_code: optionalText(20, "Postal code"),
   country: optionalText(120, "Country"),
+  photo: z
+    .string()
+    .trim()
+    .transform((value) => value || null)
+    .nullable()
+    .default(null),
   notes: z
     .string()
     .trim()
@@ -129,6 +135,12 @@ export const CONTACT_FIELD_GROUPS: ContactFieldGroup[] = [
         maxLength: 40,
         placeholder: "+1-415-555-0101",
         autoComplete: "tel",
+      },
+      {
+        name: "photo",
+        label: "Photo",
+        maxLength: 1_000_000,
+        placeholder: "data:image/png;base64,...",
       },
     ],
   },

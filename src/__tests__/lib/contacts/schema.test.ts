@@ -18,6 +18,7 @@ function values(overrides: Record<string, string> = {}) {
     state: "",
     postal_code: "",
     country: "",
+    photo: "",
     notes: "",
     ...overrides,
   };
@@ -36,6 +37,18 @@ describe("contactInputSchema", () => {
     expect(contactInputSchema.parse(values({ company: "  Acme  " })).company).toBe(
       "Acme",
     );
+  });
+
+  it("accepts a base64 photo payload and nulls blank values", () => {
+    const parsed = contactInputSchema.parse(
+      values({
+        photo: "data:image/png;base64,AAAA",
+        notes: "   ",
+      }),
+    );
+
+    expect(parsed.photo).toBe("data:image/png;base64,AAAA");
+    expect(contactInputSchema.parse(values({ photo: "   " })).photo).toBeNull();
   });
 
   it("requires the three fields the API requires", () => {

@@ -13,12 +13,22 @@ export default function ContactAvatar({
   contact,
   size = "md",
 }: {
-  contact: Pick<Contact, "first_name" | "last_name" | "email">;
+  contact: Pick<Contact, "first_name" | "last_name" | "email" | "photo">;
   size?: keyof typeof SIZES;
 }) {
   const style = {
     "--avatar-hue": avatarHue(contact.email),
   } as CSSProperties;
+
+  if (contact.photo) {
+    return (
+      <img
+        src={contact.photo}
+        alt=""
+        className={`shrink-0 rounded-full object-cover aspect-square ${SIZES[size]}`}
+      />
+    );
+  }
 
   return (
     <span
